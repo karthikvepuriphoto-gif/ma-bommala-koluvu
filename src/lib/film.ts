@@ -1,4 +1,5 @@
 import type { PlanSlide } from "./filmPlan";
+import { MUSIC_GAIN, musicGainAt, voiceSpansFromBuffers, type MusicLevel, type VoiceSpan } from "./musicMix";
 
 export function pickVideoMime(isSupported: (type: string) => boolean): { mime: string; ext: "mp4" | "webm" } {
   if (isSupported("video/mp4")) return { mime: "video/mp4", ext: "mp4" };
@@ -97,6 +98,44 @@ function drawDoll(
   ctx.restore();
 }
 
+async function mixMusic(
+  audioCtx: AudioContext,
+  dest: MediaStreamAudioDestinationNode,
+  music: Blob | null | undefined,
+  level: MusicLevel,
+  startAt: number,
+  durationSec: number,
+  voices: VoiceSpan[],
+) {
+  if (!music || durationSec <= 0) return;
+  let buffer: AudioBuffer;
+  try {
+    const bytes = await music.arrayBuffer();
+    buffer = await audioCtx.decodeAudioData(bytes.slice(0));
+  } catch {
+    return;
+  }
+  const amp = audioCtx.createGain();
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  source.connect(amp).connect(dest);
+  const baseGain = MUSIC_GAIN[level];
+  const param = amp.gain;
+  param.setValueAtTime(0, startAt);
+  const step = 0.05;
+  for (let time = step; time < durationSec; time += step) {
+    param.linearRampToValueAtTime(musicGainAt(time, { durationSec, baseGain, voices }), startAt + time);
+  }
+  param.linearRampToValueAtTime(0, startAt + durationSec);
+  source.start(startAt);
+  try {
+    source.stop(startAt + durationSec);
+  } catch {
+    /* already scheduled */
+  }
+}
+
 function slideIndex(slides: PlanSlide[], elapsed: number) {
   let start = 0;
   for (let index = 0; index < slides.length; index += 1) {
@@ -117,6 +156,8 @@ export async function renderFilm(opts: {
   names: Map<string, string>;
   images: Map<string, HTMLImageElement>;
   voices: Map<string, Blob>;
+  music?: Blob | null;
+  musicLevel?: MusicLevel;
   width: number;
   height: number;
   bitrate: number;
@@ -158,6 +199,14 @@ export async function renderFilm(opts: {
 
   const lead = 0.25;
   const startAt = audioCtx.currentTime + lead;
+  const heard: Array<number | null> = opts.slides.map((slide) => {
+    if (!slide.dollId || !buffers.has(slide.dollId)) return null;
+    return buffers.get(slide.dollId)!.duration;
+  });
+  const spans = voiceSpansFromBuffers(
+    opts.slides.map((slide) => ({ durationMs: slide.durationMs, voice: slide.voice })),
+    heard,
+  );
   let offset = 0;
   for (const slide of opts.slides) {
     if (slide.dollId && buffers.has(slide.dollId)) {
@@ -174,6 +223,7 @@ export async function renderFilm(opts: {
     }
     offset += slide.durationMs;
   }
+  await mixMusic(audioCtx, dest, opts.music, opts.musicLevel ?? "soft", startAt, total / 1000, spans);
 
   const paint = (elapsed: number) => {
     const { index, local } = slideIndex(opts.slides, elapsed);

@@ -137,7 +137,12 @@ test("demo catalogue, voice note, steps, and a short film", async ({ page }) => 
 
   await page.getByRole("button", { name: "Make a film" }).click();
   await expect(page.getByRole("button", { name: "Show a title card" })).toBeVisible();
-  await shot(page, "screenshot_film_maker");
+  await page.getByRole("button", { name: "Evening flute" }).click();
+  await expect(page.getByRole("button", { name: "Evening flute" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Soft", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("heading", { name: "Music", exact: true }).scrollIntoViewIfNeeded();
+  await shot(page, "screenshot_film_music");
+  await page.getByRole("button", { name: "Hear this" }).click();
   await layout(page);
   await page.getByRole("button", { name: "Show a title card" }).click();
   await page.getByRole("button", { name: "Show a closing card" }).click();
@@ -145,6 +150,18 @@ test("demo catalogue, voice note, steps, and a short film", async ({ page }) => 
   await expect(page.getByTestId("film-preview")).toBeVisible({ timeout: 40_000 });
   const src = await page.getByTestId("film-preview").getAttribute("src");
   expect(src).toBeTruthy();
+  if (process.env.ARTIFACT_DIR && test.info().project.name === "phone") {
+    const bytes = await page.evaluate(async () => {
+      const video = document.querySelector("[data-testid='film-preview']") as HTMLVideoElement | null;
+      if (!video?.src) return [];
+      const response = await fetch(video.src);
+      return Array.from(new Uint8Array(await response.arrayBuffer()));
+    });
+    if (bytes.length > 500) {
+      const { writeFile } = await import("node:fs/promises");
+      await writeFile(`${process.env.ARTIFACT_DIR}/sample_film_with_music.webm`, Buffer.from(bytes));
+    }
+  }
 
   await page.getByRole("button", { name: "Upload to YouTube" }).click();
   await expect(page.getByRole("heading", { name: "Upload to your YouTube channel?" })).toBeVisible();

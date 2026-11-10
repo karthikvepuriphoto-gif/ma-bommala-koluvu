@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { renderFilm } from "../lib/film";
 import { defaultOrder, planSlides } from "../lib/filmPlan";
+import type { MusicLevel } from "../lib/musicMix";
+import { MUSIC_TRACKS, musicFileUrl, type MusicTrackId } from "../lib/tracks";
 import { setLastFilm } from "../lib/filmSession";
 import { blobGet } from "../lib/idb";
 import { blobToImage } from "../lib/photos";
@@ -34,6 +36,11 @@ export function FilmScreen() {
   const [title, setTitle] = useState(`Ma Bommala Koluvu ${new Date().getFullYear()}`);
   const [closing, setClosing] = useState(lang === "te" ? "ఇంతే" : "The end");
   const [size, setSize] = useState<keyof typeof SIZES>("720");
+  const [musicChoice, setMusicChoice] = useState<"none" | MusicTrackId | "own">("none");
+  const [musicLevel, setMusicLevel] = useState<MusicLevel>("soft");
+  const [ownBlob, setOwnBlob] = useState<Blob | null>(null);
+  const [ownUrl, setOwnUrl] = useState("");
+  const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [rendering, setRendering] = useState(false);
   const [error, setError] = useState("");
@@ -41,6 +48,8 @@ export function FilmScreen() {
   const [savedId, setSavedId] = useState("");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const previewRef = useRef<HTMLAudioElement | null>(null);
+  const ownInputRef = useRef<HTMLInputElement | null>(null);
   const lock = useRef(false);
 
   useEffect(() => () => {
@@ -66,8 +75,47 @@ export function FilmScreen() {
     });
   }
 
+  function stopPreview() {
+    previewRef.current?.pause();
+    setPlaying(false);
+  }
+
+  function chooseOwn(file: File | undefined) {
+    if (!file) return;
+    if (ownUrl) URL.revokeObjectURL(ownUrl);
+    const url = URL.createObjectURL(file);
+    setOwnBlob(file);
+    setOwnUrl(url);
+    setMusicChoice("own");
+    stopPreview();
+  }
+
+  async function togglePreview() {
+    const audio = previewRef.current;
+    if (!audio) return;
+    if (playing) {
+      stopPreview();
+      return;
+    }
+    const url = musicChoice === "own"
+      ? ownUrl
+      : MUSIC_TRACKS.find((track) => track.id === musicChoice)
+        ? musicFileUrl(MUSIC_TRACKS.find((track) => track.id === musicChoice)!.file)
+        : "";
+    if (!url) return;
+    audio.src = url;
+    audio.loop = true;
+    try {
+      await audio.play();
+      setPlaying(true);
+    } catch {
+      setPlaying(false);
+    }
+  }
+
   async function make() {
     if (lock.current) return;
+    stopPreview();
     const slides = planSlides({
       dolls: plans,
       orderIds: order,
@@ -121,6 +169,15 @@ export function FilmScreen() {
           if (record) voices.set(id, record.blob);
         }
       }
+      let music: Blob | null = null;
+      if (musicChoice === "own") music = ownBlob;
+      else if (musicChoice !== "none") {
+        const track = MUSIC_TRACKS.find((item) => item.id === musicChoice);
+        if (track) {
+          const response = await fetch(musicFileUrl(track.file));
+          if (response.ok) music = await response.blob();
+        }
+      }
       const chosen = SIZES[size];
       const result = await renderFilm({
         canvas,
@@ -130,6 +187,8 @@ export function FilmScreen() {
         names,
         images,
         voices,
+        music,
+        musicLevel,
         width: chosen.width,
         height: chosen.height,
         bitrate: chosen.bitrate,
@@ -171,6 +230,35 @@ export function FilmScreen() {
     <Screen title={t.makeFilm} onBack={nav.back} className={videoUrl ? "dock-roomy" : ""} dock={filmDock}>
       {dolls.length === 0 ? <p>{t.nothingToFilm}</p> : null}
       <p>{t.filmIntro}</p>
+      <h2>{t.music}</h2>
+      <BigButton label={t.musicNone} alt={alt.musicNone} aria-pressed={musicChoice === "none"} onClick={() => { setMusicChoice("none"); stopPreview(); }} />
+      {MUSIC_TRACKS.map((track) => {
+        const label = track.id === "drone" ? t.trackDrone : track.id === "flute" ? t.trackFlute : track.id === "veena" ? t.trackVeena : t.trackDrums;
+        const other = track.id === "drone" ? alt.trackDrone : track.id === "flute" ? alt.trackFlute : track.id === "veena" ? alt.trackVeena : alt.trackDrums;
+        return (
+          <BigButton
+            key={track.id}
+            label={label}
+            alt={other}
+            aria-pressed={musicChoice === track.id}
+            onClick={() => { setMusicChoice(track.id); stopPreview(); }}
+          />
+        );
+      })}
+      <input ref={ownInputRef} type="file" accept="audio/*" hidden onChange={(event) => chooseOwn(event.target.files?.[0])} />
+      <BigButton label={t.musicOwn} alt={alt.musicOwn} aria-pressed={musicChoice === "own"} onClick={() => ownInputRef.current?.click()} />
+      {musicChoice === "own" && ownBlob ? <p className="status ok">{t.musicReady}</p> : null}
+      {musicChoice !== "none" ? (
+        <>
+          <BigButton tone="primary" label={playing ? t.musicStopHear : t.musicHear} alt={playing ? alt.musicStopHear : alt.musicHear} onClick={() => void togglePreview()} />
+          <h2>{t.musicVolume}</h2>
+          <div className="row">
+            <BigButton label={t.musicSoft} alt={alt.musicSoft} aria-pressed={musicLevel === "soft"} onClick={() => setMusicLevel("soft")} />
+            <BigButton label={t.musicMedium} alt={alt.musicMedium} aria-pressed={musicLevel === "medium"} onClick={() => setMusicLevel("medium")} />
+          </div>
+        </>
+      ) : null}
+      <audio ref={previewRef} onEnded={() => setPlaying(false)} />
       <h2>{t.resolution}</h2>
       <div className="row">
         <BigButton label={t.smaller} alt={alt.smaller} aria-pressed={size === "720"} onClick={() => setSize("720")} />
