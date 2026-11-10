@@ -34,7 +34,7 @@ export function StepsScreen() {
         {Array.from({ length: 9 }, (_, index) => index + 1).map((step) => {
           const here = dolls.filter((doll) => doll.step === step);
           return (
-            <li key={step} style={{ width: `${58 + step * 4}%` }}>
+            <li key={step}>
               <p>{stepLabel(step, lang)}</p>
               <div className="shelf">
                 {here.length === 0 ? <span className="hint">{t.emptyStep}</span> : here.map((doll) => <Thumb key={doll.id} id={doll.id} />)}

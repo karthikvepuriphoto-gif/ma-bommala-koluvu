@@ -20,6 +20,7 @@ function VoiceRow({ voice, autoPlay }: { voice: VoiceNote; autoPlay?: boolean })
     <div className="stack">
       <audio ref={ref} src={url} preload="auto" />
       <BigButton
+        className="thumb-action"
         tone="primary"
         label={t.playVoice}
         alt={alt.playVoice}
@@ -55,18 +56,23 @@ export function StoryScreen({ id }: { id: string }) {
     doll.storageBox ? `${t.storage}: ${doll.storageBox}` : "",
   ].filter(Boolean);
 
+  const firstVoice = doll.voiceNotes[0];
   return (
-    <Screen title={name} onBack={nav.back}>
+    <Screen
+      title={name}
+      onBack={nav.back}
+      dock={firstVoice ? <VoiceRow voice={firstVoice} autoPlay /> : <BigButton className="thumb-action" tone="primary" label={t.edit} alt={alt.edit} onClick={() => nav.go({ name: "doll", id })} />}
+    >
       <StatusLine kind={dollKind(doll.id, snap)} />
       {photo ? <img className="hero" src={photo} alt={name} /> : <div className="hero placeholder">{name}</div>}
-      {doll.voiceNotes.map((voice, index) => (
-        <VoiceRow key={voice.id} voice={voice} autoPlay={index === 0} />
+      {doll.voiceNotes.slice(1).map((voice) => (
+        <VoiceRow key={voice.id} voice={voice} />
       ))}
       {doll.notes.trim() ? <p className="notes">{doll.notes}</p> : null}
       {lines.map((line) => (
         <p key={line} className="detail">{line}</p>
       ))}
-      <BigButton tone="primary" label={t.edit} alt={alt.edit} onClick={() => nav.go({ name: "doll", id })} />
+      {firstVoice ? <BigButton tone="primary" label={t.edit} alt={alt.edit} onClick={() => nav.go({ name: "doll", id })} /> : null}
       {doll.voiceNotes.map((voice) => (
         <BigButton key={voice.id} label={t.removeVoice} alt={alt.removeVoice} onClick={() => setVoiceId(voice.id)} />
       ))}

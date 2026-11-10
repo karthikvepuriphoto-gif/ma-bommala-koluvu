@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const small = { width: 360, height: 740 };
 const phone = { width: 390, height: 844 };
+const large = { width: 430, height: 932 };
 const ipad = { width: 820, height: 1180 };
 
 export default defineConfig({
@@ -22,7 +24,9 @@ export default defineConfig({
     timeout: 60_000,
   },
   projects: [
+    { name: "small", use: { ...devices["Desktop Chrome"], viewport: small, hasTouch: true } },
     { name: "phone", use: { ...devices["Desktop Chrome"], viewport: phone, hasTouch: true } },
+    { name: "large", use: { ...devices["Desktop Chrome"], viewport: large, hasTouch: true } },
     { name: "ipad", use: { ...devices["Desktop Chrome"], viewport: ipad, hasTouch: true } },
   ],
 });
