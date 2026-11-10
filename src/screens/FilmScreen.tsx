@@ -154,8 +154,21 @@ export function FilmScreen() {
   const saved = snap.catalog.films.find((item) => item.id === savedId);
   const waiting = Boolean(saved && snap.mode === "google" && snap.sync.dirtyFilmIds.includes(saved.id));
 
+  const filmDock = rendering ? (
+    <>
+      <p>{t.making} {Math.round(progress * 100)}%</p>
+      <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label={t.making}>
+        <div style={{ width: `${Math.round(progress * 100)}%` }} />
+      </div>
+    </>
+  ) : videoUrl ? (
+    <BigButton className="thumb-action" tone="primary" label={t.uploadYouTube} alt={alt.uploadYouTube} onClick={() => nav.go({ name: "youtube" })} />
+  ) : dolls.length > 0 ? (
+    <BigButton className="thumb-action" tone="primary" label={t.makeTheFilm} alt={alt.makeTheFilm} onClick={() => void make()} />
+  ) : null;
+
   return (
-    <Screen title={t.makeFilm} onBack={nav.back}>
+    <Screen title={t.makeFilm} onBack={nav.back} className={videoUrl ? "dock-roomy" : ""} dock={filmDock}>
       {dolls.length === 0 ? <p>{t.nothingToFilm}</p> : null}
       <p>{t.filmIntro}</p>
       <h2>{t.resolution}</h2>
@@ -203,17 +216,6 @@ export function FilmScreen() {
           );
         })}
       </div>
-      {dolls.length > 0 && !rendering && !videoUrl ? (
-        <BigButton tone="primary" label={t.makeTheFilm} alt={alt.makeTheFilm} onClick={() => void make()} />
-      ) : null}
-      {rendering ? (
-        <>
-          <p>{t.making} {Math.round(progress * 100)}%</p>
-          <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} aria-label={t.making}>
-            <div style={{ width: `${Math.round(progress * 100)}%` }} />
-          </div>
-        </>
-      ) : null}
       <canvas ref={canvasRef} className={rendering ? "film-canvas" : "film-canvas hidden-canvas"} />
       {error ? <p className="status wait">{error}</p> : null}
       {videoUrl ? (
@@ -222,7 +224,6 @@ export function FilmScreen() {
           <BigButton tone="primary" label={t.playFilm} alt={alt.playFilm} onClick={() => void videoRef.current?.play()} />
           <BigButton label={t.download} alt={alt.download} onClick={() => download(videoUrl, title)} />
           <p className="status ok" role="status">{waiting ? t.waiting : snap.mode === "demo" ? t.savedDevice : t.savedDrive}</p>
-          <BigButton label={t.uploadYouTube} alt={alt.uploadYouTube} onClick={() => nav.go({ name: "youtube" })} />
         </div>
       ) : null}
       {snap.catalog.films.length ? <h2>{t.filmsSaved}</h2> : null}

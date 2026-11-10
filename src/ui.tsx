@@ -29,25 +29,36 @@ export function BigButton({ label, alt, tone = "quiet", className, ...rest }: Bu
   );
 }
 
+export function Dock({ children }: { children: ReactNode }) {
+  return (
+    <div className="dock">
+      <div className="dock-inner">{children}</div>
+    </div>
+  );
+}
+
 export function Screen({
   title,
   children,
   onBack,
   className,
+  dock,
 }: {
   title: string;
   children: ReactNode;
   onBack?: () => void;
   className?: string;
+  dock?: ReactNode;
 }) {
   const { t, alt } = useI18n();
   return (
-    <main className={`screen ${className ?? ""}`}>
+    <main className={`screen ${dock ? "has-dock" : ""} ${className ?? ""}`}>
       <header className="topbar">
-        {onBack ? <BigButton label={t.back} alt={alt.back} onClick={onBack} /> : null}
+        {onBack ? <BigButton className="back-btn" label={t.back} alt={alt.back} onClick={onBack} /> : null}
         <h1>{title}</h1>
       </header>
       {children}
+      {dock ? <Dock>{dock}</Dock> : null}
     </main>
   );
 }

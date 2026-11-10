@@ -73,15 +73,27 @@ export function YouTubeScreen() {
   const forcedPrivate = resultPrivacy === "private" && privacy === "unlisted";
 
   return (
-    <Screen title={t.uploadTitle} onBack={nav.back}>
+    <Screen
+      title={t.uploadTitle}
+      onBack={nav.back}
+      className="dock-roomy"
+      dock={
+        !link ? (
+          <>
+            <BigButton className="thumb-action" tone="primary" label={t.uploadYes} alt={alt.uploadYes} disabled={busy || !film} onClick={() => void upload()} />
+            <BigButton className="thumb-action" label={t.uploadNo} alt={alt.uploadNo} onClick={nav.back} />
+          </>
+        ) : (
+          <BigButton className="thumb-action" tone="primary" label={copied ? t.copied : t.copyLink} alt={alt.copyLink} onClick={() => void copy()} />
+        )
+      }
+    >
       {!film ? <p>{t.nothingToFilm}</p> : null}
       <p>{t.uploadHelp}</p>
       {!link ? (
         <>
           <BigButton label={t.unlistedChoice} alt={alt.unlistedChoice} aria-pressed={privacy === "unlisted"} onClick={() => setPrivacy("unlisted")} />
           <BigButton label={t.privateChoice} alt={alt.privateChoice} aria-pressed={privacy === "private"} onClick={() => setPrivacy("private")} />
-          <BigButton tone="primary" label={t.uploadYes} alt={alt.uploadYes} disabled={busy || !film} onClick={() => void upload()} />
-          <BigButton label={t.uploadNo} alt={alt.uploadNo} onClick={nav.back} />
         </>
       ) : null}
       {busy ? (
@@ -96,7 +108,6 @@ export function YouTubeScreen() {
         <div className="stack">
           {forcedPrivate ? <p>{t.forcedPrivate}</p> : resultPrivacy === "private" ? <p>{t.privateResult}</p> : <p>{t.onlyLink}</p>}
           <input aria-label={t.copyLink} readOnly value={link} />
-          <BigButton tone="primary" label={copied ? t.copied : t.copyLink} alt={alt.copyLink} onClick={() => void copy()} />
           <BigButton label={t.sendLink} alt={alt.sendLink} onClick={() => void send()} />
           <BigButton label={t.uploadYouTube} alt={alt.uploadYouTube} onClick={() => window.open(link, "_blank", "noopener,noreferrer")} />
         </div>

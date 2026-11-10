@@ -47,26 +47,41 @@ async function layout(page: Page) {
       if (style.display === "none" || style.visibility === "hidden") continue;
       const box = el.getBoundingClientRect();
       if (box.width === 0 || box.height === 0) continue;
-      if (box.width < 48 || box.height < 48) {
+      const min = 56;
+      if (box.width < min || box.height < min) {
         bad.push({
           text: (el.getAttribute("aria-label") || el.textContent || el.tagName).trim().slice(0, 80),
           w: Math.round(box.width),
           h: Math.round(box.height),
         });
       }
+      if (box.left < -1 || box.right > window.innerWidth + 1) {
+        bad.push({
+          text: `offscreen ${(el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 40)}`,
+          w: Math.round(box.left),
+          h: Math.round(box.right),
+        });
+      }
     }
+    const dock = document.querySelector(".dock");
+    const dockBox = dock ? dock.getBoundingClientRect() : null;
     return {
       bad,
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      dockBottom: dockBox ? Math.round(dockBox.bottom) : null,
+      viewH: window.innerHeight,
     };
   });
   expect(result.bad, JSON.stringify(result.bad)).toEqual([]);
   expect(result.overflow).toBeLessThanOrEqual(1);
+  if (result.dockBottom != null) {
+    expect(Math.abs(result.dockBottom - result.viewH)).toBeLessThanOrEqual(2);
+  }
 }
 
 async function shot(page: Page, name: string) {
   const dir = process.env.ARTIFACT_DIR;
-  if (!dir || test.info().project.name !== "ipad") return;
+  if (!dir || test.info().project.name !== "phone") return;
   mkdirSync("/tmp/mbk-shots", { recursive: true });
   const tmp = `/tmp/mbk-shots/${name}.png`;
   await page.screenshot({ path: tmp });

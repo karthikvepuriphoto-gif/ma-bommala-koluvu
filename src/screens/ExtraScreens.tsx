@@ -34,7 +34,7 @@ export function YearScreen() {
     <Screen title={t.years} onBack={nav.back}>
       <p>{t.yearsHelp}</p>
       <h2>{t.thisYear}</h2>
-      <div className="step-grid">
+      <div className="stack">
         {[current, current - 1, current - 2].map((year) => (
           <BigButton key={year} label={String(year)} aria-pressed={pickYear === year} onClick={() => setPickYear(year)} />
         ))}

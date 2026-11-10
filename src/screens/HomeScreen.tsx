@@ -2,7 +2,7 @@ import { isBlank, dollTitle } from "../types";
 import { createDoll, leaveDemo, setLanguage, signOut, useApp } from "../lib/repository";
 import { useNav } from "../nav";
 import { useI18n } from "../text";
-import { BigButton, StatusLine, dollKind, libraryKind, useBlobUrl } from "../ui";
+import { BigButton, Dock, StatusLine, dollKind, libraryKind, useBlobUrl } from "../ui";
 import { stepLabel as stepText } from "../i18n";
 
 function DollCard({ id }: { id: string }) {
@@ -31,21 +31,13 @@ export function HomeScreen() {
   const { t, alt, lang } = useI18n();
   const dolls = [...snap.catalog.dolls].filter((doll) => !isBlank(doll)).sort((a, b) => a.order - b.order);
   return (
-    <main className="screen">
+    <main className="screen has-dock">
       {snap.mode === "demo" ? <p className="banner">{t.demoBanner}</p> : null}
       <img className="brand-icon" src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" />
       <p className="eyebrow">మా బొమ్మల కొలువు</p>
       <h1>Ma Bommala Koluvu</h1>
       <p className="lede">{t.tagline}</p>
       {snap.email ? <p className="hint">{t.signedInAs} {snap.email}</p> : null}
-      <BigButton
-        tone="primary"
-        label={t.addDoll}
-        alt={alt.addDoll}
-        onClick={() => {
-          void createDoll().then((id) => nav.go({ name: "doll", id }));
-        }}
-      />
       <StatusLine kind={libraryKind(snap)} />
       <h2>{t.yourDolls}</h2>
       {dolls.length === 0 ? <p>{t.noDolls}</p> : dolls.map((doll) => <DollCard key={doll.id} id={doll.id} />)}
@@ -81,6 +73,17 @@ export function HomeScreen() {
           }}
         />
       ) : null}
+      <Dock>
+        <BigButton
+          className="thumb-action"
+          tone="primary"
+          label={t.addDoll}
+          alt={alt.addDoll}
+          onClick={() => {
+            void createDoll().then((id) => nav.go({ name: "doll", id }));
+          }}
+        />
+      </Dock>
     </main>
   );
 }

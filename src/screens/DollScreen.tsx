@@ -181,9 +181,37 @@ export function DollScreen({ id }: { id: string }) {
   }
 
   return (
-    <Screen title={doll.name.trim() || t.newDoll} onBack={() => void leave()} className={phase === "idle" ? "" : "pad-dock"}>
+    <Screen
+      title={doll.name.trim() || t.newDoll}
+      onBack={() => void leave()}
+      className={phase === "recording" ? "" : "dock-roomy"}
+      dock={
+        phase === "recording" ? (
+          <>
+            <p className="timer">{t.recording} {clock(elapsed)}</p>
+            <BigButton className="thumb-action" tone="danger" label={t.stop} alt={alt.stop} onClick={stopRec} />
+          </>
+        ) : phase === "review" && review ? (
+          <>
+            <p>{t.listenThen}</p>
+            <audio ref={audioRef} src={review.url} />
+            <BigButton className="thumb-action keep" tone="green" label={t.keep} alt={alt.keep} onClick={() => void keep()} />
+            <BigButton className="thumb-action" label={t.recordAgain} alt={alt.recordAgain} onClick={again} />
+          </>
+        ) : (
+          <>
+            <BigButton className="thumb-action" label={t.takePhoto} alt={alt.takePhoto} onClick={() => cameraRef.current?.click()} />
+            <BigButton className="thumb-action" label={t.choosePhoto} alt={alt.choosePhoto} onClick={() => fileRef.current?.click()} />
+            <BigButton className="thumb-action" tone="primary" label={t.record} alt={alt.record} onClick={() => void startRec()} />
+          </>
+        )
+      }
+    >
       <StatusLine kind={dollKind(doll.id, snap)} />
       <p className="hint">{t.autosave}</p>
+      <Field label={t.name} alt={alt.name}>
+        <input aria-label={t.name} value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
+      </Field>
       {photoUrl ? <img className="hero" data-testid="photo-preview" src={photoUrl} alt={doll.name || t.dollFallback} /> : null}
       {busy ? <p>{t.preparingPhoto}</p> : null}
       <input
@@ -203,11 +231,6 @@ export function DollScreen({ id }: { id: string }) {
         hidden
         onChange={(event) => void onPhoto(event.target.files?.[0])}
       />
-      <BigButton label={t.takePhoto} alt={alt.takePhoto} onClick={() => cameraRef.current?.click()} />
-      <BigButton label={t.choosePhoto} alt={alt.choosePhoto} onClick={() => fileRef.current?.click()} />
-      <Field label={t.name} alt={alt.name}>
-        <input aria-label={t.name} value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
-      </Field>
       <h2>{t.whichStep}</h2>
       <div className="step-grid">
         {Array.from({ length: 9 }, (_, index) => index + 1).map((step) => (
@@ -221,7 +244,6 @@ export function DollScreen({ id }: { id: string }) {
         ))}
         <BigButton className="span-3" label={t.notSure} alt={alt.notSure} aria-pressed={doll.step == null} onClick={() => void patchDoll(id, { step: null })} />
       </div>
-      {phase === "idle" ? <BigButton tone="primary" label={t.record} alt={alt.record} onClick={() => void startRec()} /> : null}
       {micError ? <p className="status wait">{t.micError}</p> : null}
       {kept ? <p className="status ok">{t.voiceKept}</p> : null}
       {(doll.voiceNotes.length > 0 && phase === "idle") ? (
@@ -297,24 +319,6 @@ export function DollScreen({ id }: { id: string }) {
           <Field label={t.storage} alt={alt.storage}>
             <input aria-label={t.storage} value={storageBox} placeholder={t.storageHint} onChange={(event) => setStorageBox(event.target.value)} autoComplete="off" />
           </Field>
-        </div>
-      ) : null}
-      {phase === "recording" ? (
-        <div className="dock">
-          <div className="dock-inner">
-            <p className="timer">{t.recording} {clock(elapsed)}</p>
-            <BigButton tone="danger" label={t.stop} alt={alt.stop} onClick={stopRec} />
-          </div>
-        </div>
-      ) : null}
-      {phase === "review" && review ? (
-        <div className="dock">
-          <div className="dock-inner">
-            <p>{t.listenThen}</p>
-            <audio ref={audioRef} src={review.url} />
-            <BigButton tone="green" label={t.keep} alt={alt.keep} onClick={() => void keep()} />
-            <BigButton label={t.recordAgain} alt={alt.recordAgain} onClick={again} />
-          </div>
         </div>
       ) : null}
     </Screen>
