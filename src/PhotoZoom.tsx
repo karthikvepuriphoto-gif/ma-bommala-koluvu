@@ -256,6 +256,20 @@ export function PhotoViewer({ src, alt, onClose }: { src: string; alt: string; o
 
   return (
     <div ref={viewerRef} className="photo-viewer" role="dialog" aria-modal="true" aria-label={alt}>
+      <div className="photo-bar">
+        <BigButton
+          className="photo-close"
+          label={t.closePhoto}
+          alt={other.closePhoto}
+          onClick={() => {
+            if (suppressClose.current) {
+              suppressClose.current = false;
+              return;
+            }
+            onClose();
+          }}
+        />
+      </div>
       <div
         className="photo-stage"
         ref={stageRef}
@@ -278,24 +292,6 @@ export function PhotoViewer({ src, alt, onClose }: { src: string; alt: string; o
             width: fit.w ? `${fit.w}px` : undefined,
             height: fit.h ? `${fit.h}px` : undefined,
             transform: `translate(calc(-50% + ${pan.x}px), calc(-50% + ${pan.y}px)) scale(${scale})`,
-          }}
-        />
-      </div>
-      <div className="photo-controls">
-        <div className="photo-zoom-controls">
-          <BigButton label={t.zoomOut} alt={other.zoomOut} onClick={() => commit(scaleRef.current - 0.6)} />
-          <BigButton tone="primary" label={t.zoomIn} alt={other.zoomIn} onClick={() => commit(scaleRef.current + 0.6)} />
-        </div>
-        <BigButton
-          className="photo-close"
-          label={t.closePhoto}
-          alt={other.closePhoto}
-          onClick={() => {
-            if (suppressClose.current) {
-              suppressClose.current = false;
-              return;
-            }
-            onClose();
           }}
         />
       </div>
