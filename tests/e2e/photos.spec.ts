@@ -13,6 +13,7 @@ async function shot(page: Page, name: string) {
   const dir = process.env.ARTIFACT_DIR;
   if (!dir) return;
   mkdirSync("/tmp/mbk-shots", { recursive: true });
+  mkdirSync(dir, { recursive: true });
   const tmp = `/tmp/mbk-shots/${name}.png`;
   await page.screenshot({ path: tmp });
   await copyFile(tmp, `${dir}/${name}.png`);
@@ -114,36 +115,92 @@ test("larger photos and zoom viewer", async ({ page }, info) => {
     await layout(page);
   }
 
+  const pagePhoto = page.locator(".photo-launch.hero img");
+  const stage = page.locator(".photo-stage");
+  const viewerPhoto = page.locator(".photo-stage img");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Look closer" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("button", { name: "Close the photo" })).toBeVisible();
-  await shot(page, "after_390x844_zoom_fit");
+  await expect(stage).toHaveAttribute("data-ready", "true");
+  for (const view of views) {
+    await page.setViewportSize({ width: view.width, height: view.height });
+    await expect(stage).toHaveAttribute("data-ready", "true");
+    const story = await pagePhoto.boundingBox();
+    const expanded = await viewerPhoto.boundingBox();
+    const viewport = page.viewportSize();
+    expect(story && expanded && viewport).toBeTruthy();
+    expect(expanded!.width).toBeGreaterThan(story!.width + 8);
+    expect(expanded!.height).toBeGreaterThan(story!.height + 8);
+    const fills =
+      expanded!.width >= viewport!.width - 4 || expanded!.height >= viewport!.height - 4;
+    expect(fills, `${view.tag} expanded ${expanded!.width}x${expanded!.height}`).toBe(true);
+    await shot(page, `after_${view.tag}_expanded`);
+    await layout(page);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const opened = Number(await stage.getAttribute("data-fill"));
+  expect(opened).toBeGreaterThan(1);
   await page.getByRole("button", { name: "Zoom in" }).click();
-  expect(Number(await page.locator(".photo-stage").getAttribute("data-scale"))).toBeGreaterThan(1);
-  const beforePan = await page.locator(".photo-stage img").evaluate((img) => getComputedStyle(img).transform);
-  const stage = page.locator(".photo-stage");
+  expect(Number(await stage.getAttribute("data-scale"))).toBeGreaterThan(opened + 0.4);
+  const beforePan = await viewerPhoto.evaluate((img) => getComputedStyle(img).transform);
   const box = await stage.boundingBox();
   if (box) {
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.move(box.x + 80, box.y + box.height / 2);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2 + 36);
+    await page.mouse.move(box.x + 150, box.y + box.height / 2);
     await page.mouse.up();
   }
-  const afterPan = await page.locator(".photo-stage img").evaluate((img) => getComputedStyle(img).transform);
+  const afterPan = await viewerPhoto.evaluate((img) => getComputedStyle(img).transform);
   expect(afterPan).not.toBe(beforePan);
   await stage.dblclick();
-  expect(Number(await stage.getAttribute("data-scale"))).toBe(1);
-  await stage.dispatchEvent("pointerdown", { pointerId: 1, clientX: 140, clientY: 300, pointerType: "touch" });
-  await stage.dispatchEvent("pointerdown", { pointerId: 2, clientX: 180, clientY: 300, pointerType: "touch" });
-  await stage.dispatchEvent("pointermove", { pointerId: 2, clientX: 280, clientY: 300, pointerType: "touch" });
-  expect(Number(await stage.getAttribute("data-scale"))).toBeGreaterThan(1);
+  expect(Math.abs(Number(await stage.getAttribute("data-scale")) - Number(await stage.getAttribute("data-fill")))).toBeLessThan(0.2);
+
+  const client = await page.context().newCDPSession(page);
+  const beforeTouch = Number(await stage.getAttribute("data-scale"));
+  await client.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [
+      { x: 120, y: 420, id: 1 },
+      { x: 200, y: 420, id: 2 },
+    ],
+  });
+  await client.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [
+      { x: 40, y: 420, id: 1 },
+      { x: 340, y: 420, id: 2 },
+    ],
+  });
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  expect(Number(await stage.getAttribute("data-scale"))).toBeGreaterThan(beforeTouch + 0.4);
+  await page.waitForTimeout(400);
+  await stage.dblclick();
+  await page.waitForTimeout(400);
+
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 180, y: 400, id: 1 }] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 180, y: 400, id: 1 }] });
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  expect(Number(await stage.getAttribute("data-scale"))).toBeGreaterThan(Number(await stage.getAttribute("data-fill")) + 0.4);
+
+  const beforePointer = Number(await stage.getAttribute("data-scale"));
+  await stage.dispatchEvent("pointerdown", { pointerId: 1, clientX: 140, clientY: 300, pointerType: "mouse" });
+  await stage.dispatchEvent("pointerdown", { pointerId: 2, clientX: 180, clientY: 300, pointerType: "mouse" });
+  await stage.dispatchEvent("pointermove", { pointerId: 2, clientX: 280, clientY: 300, pointerType: "mouse" });
+  expect(Number(await stage.getAttribute("data-scale"))).toBeGreaterThan(beforePointer);
+  await page.waitForTimeout(400);
+  await stage.dblclick();
+  await page.getByRole("button", { name: "Zoom in" }).click();
   for (const view of views) {
     await page.setViewportSize({ width: view.width, height: view.height });
     await shot(page, `after_${view.tag}_zoom`);
   }
   await page.getByRole("button", { name: "Close the photo" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await shot(page, "after_390x844_closed");
   await page.evaluate(() => window.scrollTo(0, 0));
   const canScroll = await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 40);
   if (canScroll) {
@@ -167,15 +224,20 @@ test("larger photos and zoom viewer", async ({ page }, info) => {
     await layout(page);
   }
 
-  const client = await page.context().newCDPSession(page);
-  await client.send("Emulation.setEmulatedMedia", {
+  const standalone = await page.context().newCDPSession(page);
+  await standalone.send("Emulation.setEmulatedMedia", {
     features: [{ name: "display-mode", value: "standalone" }],
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Back" }).click();
   await page.getByRole("button", { name: /Lakshmi/ }).click();
+  const beforeStandalone = await page.locator(".photo-launch.hero img").boundingBox();
   await page.getByRole("button", { name: "Look closer" }).click();
-  await expect(page.getByRole("button", { name: "Zoom in" })).toBeVisible();
+  await expect(page.locator(".photo-stage")).toHaveAttribute("data-ready", "true");
+  const standalonePhoto = await page.locator(".photo-stage img").boundingBox();
+  expect(standalonePhoto!.height).toBeGreaterThan((beforeStandalone?.height ?? 0) + 8);
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  expect(Number(await page.locator(".photo-stage").getAttribute("data-scale"))).toBeGreaterThan(1);
   await page.getByRole("button", { name: "Close the photo" }).click();
   await shot(page, "after_390x844_standalone");
   expect(errors.filter((item) => !item.includes("setPointerCapture")), errors.join("\n")).toEqual([]);
