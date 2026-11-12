@@ -5,6 +5,7 @@ import { compressPhoto } from "../lib/photos";
 import { addVoice, discardIfBlank, patchDoll, setDollPhoto, useApp } from "../lib/repository";
 import { useNav } from "../nav";
 import { useI18n } from "../text";
+import { ZoomablePhoto } from "../PhotoZoom";
 import { BigButton, Field, Screen, StatusLine, dollKind, useBlobUrl } from "../ui";
 import { stepLabel } from "../i18n";
 
@@ -212,7 +213,7 @@ export function DollScreen({ id }: { id: string }) {
       <Field label={t.name} alt={alt.name}>
         <input aria-label={t.name} value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
       </Field>
-      {photoUrl ? <img className="hero" data-testid="photo-preview" src={photoUrl} alt={doll.name || t.dollFallback} /> : null}
+      {photoUrl ? <ZoomablePhoto className="hero" testId="photo-preview" src={photoUrl} alt={doll.name || t.dollFallback} /> : null}
       {busy ? <p>{t.preparingPhoto}</p> : null}
       <input
         ref={cameraRef}

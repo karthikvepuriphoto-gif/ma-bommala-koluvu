@@ -10,6 +10,7 @@ import { saveFilm, useApp } from "../lib/repository";
 import { useNav } from "../nav";
 import { useI18n } from "../text";
 import { dollTitle, isBlank } from "../types";
+import { ZoomablePhoto } from "../PhotoZoom";
 import { BigButton, Screen, useBlobUrl } from "../ui";
 
 const SIZES = {
@@ -21,7 +22,7 @@ function RowThumb({ id }: { id: string }) {
   const snap = useApp();
   const doll = snap.catalog.dolls.find((item) => item.id === id);
   const url = useBlobUrl(doll?.photoLocalKey, doll?.photoDriveId);
-  return url ? <img src={url} alt="" /> : <span className="thumb-fallback" aria-hidden="true" />;
+  return url ? <ZoomablePhoto className="film-photo" src={url} alt="" /> : <span className="thumb-fallback" aria-hidden="true" />;
 }
 
 export function FilmScreen() {

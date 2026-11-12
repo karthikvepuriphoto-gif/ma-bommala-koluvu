@@ -48,5 +48,10 @@ Karthik, the app can show English or Telugu. The Telugu below is simple on purpo
 | Porcelain | పింగాణి | Fine. |
 | Cloth | గుడ్డ | Could be బట్ట. |
 | Metal | లోహం | Fine. |
+| Look closer | దగ్గరగా చూడండి | Shown on a large photo. Tapping it opens the photo bigger. |
+| Zoom in | పెద్దదిగా చూడండి | The plus control in the photo viewer. |
+| Zoom out | చిన్నదిగా చూడండి | The minus control in the photo viewer. |
+| Close the photo | ఫోటో మూసివేయండి | Leaves the big photo and returns to the page. |
+| Pinch or double-tap hint | రెండు వేళ్లతో లాగండి, లేదా రెండుసార్లు నొక్కండి. బటన్లు కూడా పని చేస్తాయి. | Please check that this sounds like something you would say to a parent. |
 
 Names left in English on purpose, in both languages: Google, YouTube, Drive, 720p, 1080p, and the app title “Ma Bommala Koluvu” next to మా బొమ్మల కొలువు.
