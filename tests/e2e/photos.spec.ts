@@ -121,7 +121,8 @@ test("larger photos and zoom viewer", async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Look closer" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Close the photo" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Zoom in|Zoom out/ })).toHaveCount(0);
   await expect(stage).toHaveAttribute("data-ready", "true");
   for (const view of views) {
     await page.setViewportSize({ width: view.width, height: view.height });
@@ -135,6 +136,17 @@ test("larger photos and zoom viewer", async ({ page }, info) => {
     const fills =
       expanded!.width >= viewport!.width - 4 || expanded!.height >= viewport!.height - 4;
     expect(fills, `${view.tag} expanded ${expanded!.width}x${expanded!.height}`).toBe(true);
+    const overlap = await page.evaluate(() => {
+      const photo = document.querySelector(".photo-stage")!.getBoundingClientRect();
+      const hits: string[] = [];
+      for (const el of document.querySelectorAll(".photo-viewer button")) {
+        const box = el.getBoundingClientRect();
+        const covers = box.bottom > photo.top + 1 && box.top < photo.bottom - 1;
+        if (covers) hits.push((el.getAttribute("aria-label") || "").slice(0, 40));
+      }
+      return hits;
+    });
+    expect(overlap, `${view.tag} controls on the photo`).toEqual([]);
     await shot(page, `after_${view.tag}_expanded`);
     await layout(page);
   }
@@ -142,7 +154,7 @@ test("larger photos and zoom viewer", async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const opened = Number(await stage.getAttribute("data-fill"));
   expect(opened).toBeGreaterThan(1);
-  await page.getByRole("button", { name: "Zoom in" }).click();
+  await stage.dblclick();
   expect(Number(await stage.getAttribute("data-scale"))).toBeGreaterThan(opened + 0.4);
   const beforePan = await viewerPhoto.evaluate((img) => getComputedStyle(img).transform);
   const box = await stage.boundingBox();
@@ -154,6 +166,7 @@ test("larger photos and zoom viewer", async ({ page }, info) => {
   }
   const afterPan = await viewerPhoto.evaluate((img) => getComputedStyle(img).transform);
   expect(afterPan).not.toBe(beforePan);
+  await page.waitForTimeout(400);
   await stage.dblclick();
   expect(Math.abs(Number(await stage.getAttribute("data-scale")) - Number(await stage.getAttribute("data-fill")))).toBeLessThan(0.2);
 
@@ -192,12 +205,11 @@ test("larger photos and zoom viewer", async ({ page }, info) => {
   expect(Number(await stage.getAttribute("data-scale"))).toBeGreaterThan(beforePointer);
   await page.waitForTimeout(400);
   await stage.dblclick();
-  await page.getByRole("button", { name: "Zoom in" }).click();
   for (const view of views) {
     await page.setViewportSize({ width: view.width, height: view.height });
     await shot(page, `after_${view.tag}_zoom`);
   }
-  await page.getByRole("button", { name: "Close the photo" }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.setViewportSize({ width: 390, height: 844 });
   await shot(page, "after_390x844_closed");
@@ -236,9 +248,10 @@ test("larger photos and zoom viewer", async ({ page }, info) => {
   await expect(page.locator(".photo-stage")).toHaveAttribute("data-ready", "true");
   const standalonePhoto = await page.locator(".photo-stage img").boundingBox();
   expect(standalonePhoto!.height).toBeGreaterThan((beforeStandalone?.height ?? 0) + 8);
-  await page.getByRole("button", { name: "Zoom in" }).click();
+  await page.locator(".photo-stage").dblclick();
   expect(Number(await page.locator(".photo-stage").getAttribute("data-scale"))).toBeGreaterThan(1);
-  await page.getByRole("button", { name: "Close the photo" }).click();
+  await expect(page.getByRole("button", { name: /Zoom in|Zoom out/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await shot(page, "after_390x844_standalone");
   expect(errors.filter((item) => !item.includes("setPointerCapture")), errors.join("\n")).toEqual([]);
 });
