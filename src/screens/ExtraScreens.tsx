@@ -4,6 +4,7 @@ import { setYearPhoto, shareWithEmail, useApp } from "../lib/repository";
 import { useNav } from "../nav";
 import { useI18n } from "../text";
 import { dollTitle, isBlank } from "../types";
+import { ZoomablePhoto } from "../PhotoZoom";
 import { BigButton, Dialog, Field, Screen, useBlobUrl } from "../ui";
 
 function YearPhoto({ id }: { id: string }) {
@@ -11,7 +12,7 @@ function YearPhoto({ id }: { id: string }) {
   const shot = snap.catalog.years.find((item) => item.id === id);
   const url = useBlobUrl(shot?.localKey, shot?.driveFileId);
   if (!shot) return null;
-  return url ? <img className="hero" src={url} alt={String(shot.year)} /> : null;
+  return url ? <ZoomablePhoto className="hero" src={url} alt={String(shot.year)} /> : null;
 }
 
 export function YearScreen() {

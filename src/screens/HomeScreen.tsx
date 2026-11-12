@@ -2,6 +2,7 @@ import { isBlank, dollTitle } from "../types";
 import { createDoll, leaveDemo, setLanguage, signOut, useApp } from "../lib/repository";
 import { useNav } from "../nav";
 import { useI18n } from "../text";
+import { ZoomablePhoto } from "../PhotoZoom";
 import { BigButton, Dock, StatusLine, dollKind, libraryKind, useBlobUrl } from "../ui";
 import { stepLabel as stepText } from "../i18n";
 
@@ -14,14 +15,14 @@ function DollCard({ id }: { id: string }) {
   if (!doll || isBlank(doll)) return null;
   const name = dollTitle(doll, t.dollFallback);
   return (
-    <button type="button" className="card" data-tap="primary" onClick={() => nav.go({ name: "story", id: doll.id })}>
-      {url ? <img src={url} alt="" /> : <span className="thumb-fallback" aria-hidden="true" />}
-      <span>
+    <div className="card">
+      {url ? <ZoomablePhoto className="card-photo" src={url} alt={name} /> : <span className="thumb-fallback" aria-hidden="true" />}
+      <button type="button" className="card-main" data-tap="primary" onClick={() => nav.go({ name: "story", id: doll.id })}>
         <strong>{name}</strong>
         <span className="meta">{doll.step ? stepText(doll.step, lang) : t.notSure}</span>
         <span className="meta">{dollKind(doll.id, snap) === "device" ? t.savedDevice : dollKind(doll.id, snap) === "waiting" ? t.waiting : t.savedDrive}</span>
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
 

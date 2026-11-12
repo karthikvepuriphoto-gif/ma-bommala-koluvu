@@ -4,6 +4,7 @@ import { useApp } from "../lib/repository";
 import { useNav } from "../nav";
 import { useI18n } from "../text";
 import { dollTitle, isBlank } from "../types";
+import { ZoomablePhoto } from "../PhotoZoom";
 import { Screen, useBlobUrl } from "../ui";
 
 function Thumb({ id }: { id: string }) {
@@ -15,10 +16,12 @@ function Thumb({ id }: { id: string }) {
   if (!doll) return null;
   const name = dollTitle(doll, t.dollFallback);
   return (
-    <button type="button" className="thumb" data-tap="primary" onClick={() => nav.go({ name: "story", id })}>
-      {url ? <img src={url} alt={name} /> : <span className="thumb-fallback" aria-hidden="true" />}
-      <span>{name}</span>
-    </button>
+    <div className="thumb">
+      {url ? <ZoomablePhoto className="thumb-photo" src={url} alt={name} /> : <span className="thumb-fallback" aria-hidden="true" />}
+      <button type="button" className="thumb-open" data-tap="primary" onClick={() => nav.go({ name: "story", id })}>
+        <span>{name}</span>
+      </button>
+    </div>
   );
 }
 

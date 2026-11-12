@@ -5,6 +5,7 @@ import { useNav } from "../nav";
 import { useI18n } from "../text";
 import { dollTitle, type VoiceNote } from "../types";
 import { useRemoveDoll } from "../undo";
+import { ZoomablePhoto } from "../PhotoZoom";
 import { BigButton, Dialog, Screen, StatusLine, dollKind, useBlobUrl } from "../ui";
 
 function VoiceRow({ voice, autoPlay }: { voice: VoiceNote; autoPlay?: boolean }) {
@@ -64,7 +65,7 @@ export function StoryScreen({ id }: { id: string }) {
       dock={firstVoice ? <VoiceRow voice={firstVoice} autoPlay /> : <BigButton className="thumb-action" tone="primary" label={t.edit} alt={alt.edit} onClick={() => nav.go({ name: "doll", id })} />}
     >
       <StatusLine kind={dollKind(doll.id, snap)} />
-      {photo ? <img className="hero" src={photo} alt={name} /> : <div className="hero placeholder">{name}</div>}
+      {photo ? <ZoomablePhoto className="hero" src={photo} alt={name} /> : <div className="hero placeholder">{name}</div>}
       {doll.voiceNotes.slice(1).map((voice) => (
         <VoiceRow key={voice.id} voice={voice} />
       ))}
